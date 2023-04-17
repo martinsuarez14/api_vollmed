@@ -2,10 +2,10 @@ package med.voll.api.controllers;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import med.voll.api.paciente.DatosActualizarPaciente;
-import med.voll.api.paciente.DatosRegistroPaciente;
-import med.voll.api.paciente.Paciente;
-import med.voll.api.paciente.PacienteRepository;
+import med.voll.api.domain.paciente.DatosActualizarPaciente;
+import med.voll.api.domain.paciente.DatosRegistroPaciente;
+import med.voll.api.domain.paciente.Paciente;
+import med.voll.api.domain.paciente.PacienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

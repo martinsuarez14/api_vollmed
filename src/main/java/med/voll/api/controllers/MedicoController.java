@@ -1,14 +1,18 @@
 package med.voll.api.controllers;
 
-import com.electronwill.nightconfig.core.conversion.Path;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import med.voll.api.medico.*;
+import med.voll.api.domain.direccion.DatosDireccion;
+import med.voll.api.domain.medico.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
 
 //NO SE PUEDEN ACTUALIZAR EMAIL Y DOCUMENTO
 // LOS MEDICOS NO PUEDEN SER ELIMINADOS SINO DADOS DE BAJA
@@ -22,18 +26,34 @@ public class MedicoController {
     private MedicoRepository medicoRepository;
 
 
+    // ESPECIFICAR EN EL ResponseEntity el tipo de objeto a retornar <T>
     @PostMapping("/registrar")
-    public void registrarMedico(@RequestBody @Valid DatosRegistroMedico datosRegistroMedico) {
-        medicoRepository.save(new Medico(datosRegistroMedico));
+    public ResponseEntity<DatosRespuestaMedico> registrarMedico(@RequestBody @Valid DatosRegistroMedico datosRegistroMedico, UriComponentsBuilder uriComponentBuilder) {
+        Medico medico = medicoRepository.save(new Medico(datosRegistroMedico));
+        DatosRespuestaMedico datosRespuestaMedico = new DatosRespuestaMedico(
+                medico.getId(), medico.getNombre(), medico.getEmail(), medico.getTelefono(),
+                medico.getEspecialidad().toString(),
+                new DatosDireccion(medico.getDireccion().getCalle(), medico.getDireccion().getDistrito(), medico.getDireccion().getCiudad(),
+                        medico.getDireccion().getNumero(), medico.getDireccion().getComplemento()));
+
+        // CON LA CLASE URI RETORNAMOS LA URL
+        // EL RETORNO CREATED NOS PIDE LA URL
+        URI url = uriComponentBuilder.path("/medicos/{id}").buildAndExpand(medico.getId()).toUri();
+
+        return ResponseEntity.created(url).body(datosRespuestaMedico);
+        // Debo retornar en el header lo siguiente
+        // Return 201 Created
+        // URL donde encontrar al médico
+        // GET http://localhost:8080/medicos
     }
 
     // CUANDO TRABAJAMOS CON PAGINACIÓN DEBE LLEGAR DEL FRONTEND UN PARÁMETRO Pageable
     // CON LA ANOTACION @PageableDefault modificamos los valores por defecto de Spring
     @GetMapping
-    public Page<DatosListadoMedico> listadoMedicos(@PageableDefault(size = 2) Pageable paginacion) {
+    public ResponseEntity<Page<DatosListadoMedico>> listadoMedicos(@PageableDefault(size = 2) Pageable paginacion) {
         // Los valores que envíe el cliente sobreescriben @PageableDefault
         // return medicoRepository.findAll(paginacion).map(DatosListadoMedico::new);
-        return medicoRepository.findByActivoTrue(paginacion).map(DatosListadoMedico::new);
+        return ResponseEntity.ok(medicoRepository.findByActivoTrue(paginacion).map(DatosListadoMedico::new));
 
     }
 
@@ -57,21 +77,38 @@ public class MedicoController {
     // Para editar debo recibir el id del Medico
     @PutMapping
     @Transactional
-    public void actualizarMedico(@RequestBody @Valid DatosActualizarMedico datosActualizarMedico) {
+    public ResponseEntity actualizarMedico(@RequestBody @Valid DatosActualizarMedico datosActualizarMedico) {
         // getReferenceById trae un objeto por iD
         Medico medico = medicoRepository.getReferenceById(datosActualizarMedico.id());
         medico.actualizarDatos(datosActualizarMedico);
+        return ResponseEntity.ok(new DatosRespuestaMedico(
+                medico.getId(), medico.getNombre(), medico.getEmail(), medico.getTelefono(),
+                medico.getEspecialidad().toString(),
+                new DatosDireccion(medico.getDireccion().getCalle(), medico.getDireccion().getDistrito(), medico.getDireccion().getCiudad(),
+                        medico.getDireccion().getNumero(), medico.getDireccion().getComplemento())
+        ));
     }
 
 
     // NO ELIMINAMOS EL MEDICO HACEMOS UN DELETE LÓGICO DANDOLE UN ESTADO ACTIVO
     @DeleteMapping("/{id}")
     @Transactional
-    public void eliminarMedico(@PathVariable Long id) {
+    public ResponseEntity eliminarMedico(@PathVariable Long id) {
         Medico medico = medicoRepository.getReferenceById(id);
         medico.desactivarMedico();
+        return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<DatosRespuestaMedico> retornaDatosMedico(@PathVariable Long id) {
+        Medico medico = medicoRepository.getReferenceById(id);
+        var datosMedico = new DatosRespuestaMedico(
+                medico.getId(), medico.getNombre(), medico.getEmail(), medico.getTelefono(),
+                medico.getEspecialidad().toString(),
+                new DatosDireccion(medico.getDireccion().getCalle(), medico.getDireccion().getDistrito(), medico.getDireccion().getCiudad(),
+                        medico.getDireccion().getNumero(), medico.getDireccion().getComplemento()));
+        return ResponseEntity.ok(datosMedico);
+    }
 
 
 

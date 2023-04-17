@@ -1,7 +1,7 @@
-package med.voll.api.medico;
+package med.voll.api.domain.medico;
 
 import lombok.*;
-import med.voll.api.direccion.Direccion;
+import med.voll.api.domain.direccion.Direccion;
 import jakarta.persistence.*;
 
 @Table(name = "medicos")
