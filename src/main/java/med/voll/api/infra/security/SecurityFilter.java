@@ -22,6 +22,21 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    /**
+     *  MÉTODO QUE FILTRA LAS SOLICITUDES HTTP ENTRANTES
+     *
+     *  FilterChain Clase utilizada para establecer un filtro a las solicitudes
+     * .getHeader("Authorization") obtiene el valor del Header especificado en los ()
+     * .replace() reemplaza el String indicado por otro en el header entrante
+     * .tokenService().getSubject(token) extrae el nombre de Usuario del token
+     *  UsernamePasswordAuthenticationToken Clase utilizada para encapsular la información de Autenticación de los usuarios
+     *  SecurityContextHolder Clase que contiene la información de Autenticación y Autorización de la APP
+     * .getContext() utilizado para obtener el contexto de seguridad actual
+     * .setAuthentication(authentication) establece la información de Authenticación proporcionada por el Contexto
+     * y le pasamos el objeto "authentication" que tiene al usuario, las credenciales y los permisos.
+     * filterChain.doFilter(request, response) Permite pasar la solicitud y la respuesta al siguiente filtro en la cadena
+     *
+     * */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -30,27 +45,36 @@ public class SecurityFilter extends OncePerRequestFilter {
 
         System.out.println("El filtro está siendo llamado...");
 
-        // Primero obtener el token del header
         var authHeader = request.getHeader("Authorization");
+        System.out.println("Extraemos el header " + authHeader);
 
-        // Comprobamos que no llegue vacío o nulo
         if (authHeader != null) { // si el token no es nulo se ejecuta el filtro
+            System.out.println("Comprobamos si el header es nulo");
 
-            // Reemplazamos el "Bearer " por vacío
             var token = authHeader.replace("Bearer ", "");
-            // Debemos evaluar si el token es válido
-            var nombreUsuario = tokenService.getSubject(token);// extraemos el username
+            System.out.println("reemplazamos el Bearer");
+
+            var nombreUsuario = tokenService.getSubject(token);
+            System.out.println("Extraemos el username " + nombreUsuario);
+
             if (nombreUsuario != null) {
-                // Token válido
-                // Forzamos un inicio de session para spring
+                System.out.println("Comprobamos que no sea nulo el username");
+
                 var usuario = usuarioRepository.findByLogin(nombreUsuario);
+                System.out.println("usuario buscado en la base de datos");
+
                 var authentication = new UsernamePasswordAuthenticationToken(
                         usuario,
                         null,
                         usuario.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication); // este login es válido para mi
+                System.out.println("Forzamos el inicio de sesion");
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println("Damos un login valido");
+
             }
         }
+        System.out.println("El header vino vacío. Pasamos al siguiente filtro");
         filterChain.doFilter(request, response);
     }
 
